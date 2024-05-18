@@ -5,7 +5,7 @@ const cors = require("cors");
 
 app.use(cors());
 
-const Xp = require("../backend/models/Xp.js");
+const Xp = require("./models/Xp.js");
 
 app.use(express.json());
 
