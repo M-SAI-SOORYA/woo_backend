@@ -1,13 +1,14 @@
-const express = require('express')
-const app = express()
-const port = 5000
-const cors = require("cors");
+const express = require('express');
+const cors = require('cors');
+const Xp = require("./models/Xp.js");
+require('dotenv').config();
+
+const app = express();
+const port = process.env.PORT || 5000;
 
 app.use(cors());
-
-const Xp = require("./models/Xp.js");
-
 app.use(express.json());
+
 
 app.get('/get/item1', async (req, res) => {
     try {
