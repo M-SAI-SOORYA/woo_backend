@@ -1,7 +1,11 @@
 const mongoose=require('mongoose');
-const mongoURI="mongodb+srv://saisooryamarri:Hs8iRlr1mfhvMAKB@system.vesozdf.mongodb.net/?retryWrites=true&w=majority&appName=System"
-mongoose.connect(mongoURI);
-const xpSchema=new mongoose.Schema({
+const mongoURI = process.env.MONGO_URI || "mongodb+srv://saisooryamarri:Hs8iRlr1mfhvMAKB@system.vesozdf.mongodb.net/?retryWrites=true&w=majority&appName=System"
+mongoose.connect(mongoURI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+.then(() => console.log('MongoDB connected'))
+.catch(err => console.error('MongoDB connection error:', err));const xpSchema=new mongoose.Schema({
     gymXp:{
         type:Number,
         required:true
