@@ -12,7 +12,7 @@ app.use(express.json());
 
 app.get('/get/item1', async (req, res) => {
     try {
-        const item1 = await Xp.findById("664632b48435b33dc80620e0");
+        const item1 = await Xp.findById("664afb59c7a77177ab116370");
         res.json(item1);
     } catch (err) {
         res.status(500).send(err);
@@ -113,7 +113,7 @@ app.post('/xp', async (req, res) => {
 
 
 
-        const objectId = "664632b48435b33dc80620e0";
+        const objectId = "664afb59c7a77177ab116370";
 
         let item = await Xp.findById(objectId);
         const penalties = getPenalties(gymXp, todoXp, dietXp, socialXp);
@@ -207,7 +207,7 @@ app.post('/datexp', async (req, res) => {
 
     try {
         const { gymXp, todoXp, dietXp, socialXp } = req.body;
-        const objectId = "664632b48435b33dc80620e0";
+        const objectId = "664afb59c7a77177ab116370";
 
         let item = await Xp.findById(objectId);
 
