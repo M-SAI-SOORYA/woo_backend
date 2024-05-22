@@ -83,26 +83,26 @@ app.post('/xp', async (req, res) => {
                 return "Iron Warrior";
             }
             else if (level >= 20 && level < 30) {
-                return "Class C";
+                return "Class C Hero";
             }
             else if (level >= 30 && level < 40) {
                 return "Steel Warrior Class C";
             }
 
             else if (level >= 40 && level < 50) {
-                return "Class B";
+                return "Class B Hero";
             }
             else if (level >= 50 && level < 60) {
                 return "Gold Warrior Class B";
             }
             else if (level >= 60 && level < 70) {
-                return "Class A";
+                return "Class A Hero";
             }
             else if (level >= 70 && level < 80) {
                 return "Titan Class A";
             }
             else if (level >= 80 && level < 90) {
-                return "Class S";
+                return "Class S Hero";
             }
             else {
                 return "Monarch Class S";
