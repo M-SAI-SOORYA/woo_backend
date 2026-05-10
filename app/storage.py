@@ -3,35 +3,9 @@ from __future__ import annotations
 import os
 import sqlite3
 from contextlib import contextmanager
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Iterator
-
-DEFAULT_HABITS = [
-    ("Workout", "Body", "Strength", 25, 15, "daily"),
-    ("Deep Work", "Mind", "Intelligence", 25, 10, "daily"),
-    ("Clean Diet", "Health", "Vitality", 25, 10, "daily"),
-    ("Social Confidence", "Presence", "Charisma", 25, 10, "daily"),
-]
-
-DEFAULT_SYSTEM_SETTINGS = {
-    "reward_level_interval": "3",
-    "penalty_failure_threshold": "1",
-}
-
-DEFAULT_REWARDS = [
-    ("Recovery Break", "Take a guilt-free recovery break after earning this milestone."),
-    ("Social Time", "Plan time with friends or family."),
-    ("Useful Upgrade", "Buy one useful item that supports your routine."),
-    ("Entertainment Pass", "Watch one episode or movie without multitasking."),
-]
-
-DEFAULT_PENALTIES = [
-    ("Focus Reset", "No social media tomorrow."),
-    ("Deep Work Block", "Complete one focused deep-work block."),
-    ("Practice Set", "Solve 5 practice problems."),
-    ("Environment Reset", "Clean your workspace before the next session."),
-]
 
 
 def database_path() -> Path:
@@ -92,41 +66,6 @@ def init_db() -> None:
             );
             """
         )
-        count = conn.execute("SELECT COUNT(*) FROM habits").fetchone()[0]
-        if count == 0:
-            now = datetime.utcnow().isoformat()
-            conn.executemany(
-                """
-                INSERT INTO habits (name, category, stat, xp, penalty, cadence, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                [(*habit, now) for habit in DEFAULT_HABITS],
-            )
-
-        settings_count = conn.execute("SELECT COUNT(*) FROM system_settings").fetchone()[0]
-        if settings_count == 0:
-            conn.executemany(
-                "INSERT INTO system_settings (key, value) VALUES (?, ?)",
-                DEFAULT_SYSTEM_SETTINGS.items(),
-            )
-
-        rules_count = conn.execute("SELECT COUNT(*) FROM outcome_rules").fetchone()[0]
-        if rules_count == 0:
-            now = datetime.utcnow().isoformat()
-            conn.executemany(
-                """
-                INSERT INTO outcome_rules (outcome_type, title, message, created_at)
-                VALUES ('reward', ?, ?, ?)
-                """,
-                [(*reward, now) for reward in DEFAULT_REWARDS],
-            )
-            conn.executemany(
-                """
-                INSERT INTO outcome_rules (outcome_type, title, message, created_at)
-                VALUES ('penalty', ?, ?, ?)
-                """,
-                [(*penalty, now) for penalty in DEFAULT_PENALTIES],
-            )
 
 
 def parse_iso_date(value: str | None) -> date:
