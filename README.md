@@ -11,7 +11,8 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
 ```
 
-The API stores data in `woo_habits.db` by default. Override it with:
+The API stores data in `woo_habits.db` in this backend directory by default,
+even if the server is started from another working directory. Override it with:
 
 ```bash
 set DATABASE_PATH=path\to\custom.db
