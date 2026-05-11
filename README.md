@@ -11,12 +11,16 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
 ```
 
-The API stores data in `woo_habits.db` in this backend directory by default,
-even if the server is started from another working directory. Override it with:
+The API stores data in MongoDB. Create `woo_backend/.env` from `.env.example`
+and set your MongoDB Atlas connection string:
 
 ```bash
-set DATABASE_PATH=path\to\custom.db
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster-url>/woo_habits?retryWrites=true&w=majority
+MONGO_DB_NAME=woo_habits
 ```
+
+For Atlas, make sure your database user has read/write access and your current
+IP address is allowed in Network Access.
 
 ## Main endpoints
 

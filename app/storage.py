@@ -1,79 +1,59 @@
 from __future__ import annotations
 
 import os
-import sqlite3
-from contextlib import contextmanager
 from datetime import date, timedelta
+from functools import lru_cache
 from pathlib import Path
-from typing import Iterator
+
+from dotenv import load_dotenv
+from pymongo import ASCENDING, MongoClient, ReturnDocument
+from pymongo.database import Database
 
 
-DEFAULT_DATABASE_PATH = Path(__file__).resolve().parents[1] / "woo_habits.db"
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
+DEFAULT_DATABASE_NAME = "woo_habits"
 
 
-def database_path() -> Path:
-    configured_path = os.getenv("DATABASE_PATH")
-    if configured_path:
-        return Path(configured_path).expanduser().resolve()
-    return DEFAULT_DATABASE_PATH
+def mongo_uri() -> str:
+    uri = os.getenv("MONGO_URI")
+    if not uri:
+        raise RuntimeError("MONGO_URI is not configured. Add it to woo_backend/.env.")
+    return uri
 
 
-@contextmanager
-def connect() -> Iterator[sqlite3.Connection]:
-    path = database_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    try:
-        yield conn
-        conn.commit()
-    finally:
-        conn.close()
+def database_name() -> str:
+    return os.getenv("MONGO_DB_NAME", DEFAULT_DATABASE_NAME)
+
+
+@lru_cache(maxsize=1)
+def client() -> MongoClient:
+    return MongoClient(mongo_uri())
+
+
+def db() -> Database:
+    return client()[database_name()]
 
 
 def init_db() -> None:
-    with connect() as conn:
-        conn.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS habits (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                category TEXT NOT NULL,
-                stat TEXT NOT NULL,
-                xp INTEGER NOT NULL DEFAULT 25,
-                penalty INTEGER NOT NULL DEFAULT 10,
-                cadence TEXT NOT NULL DEFAULT 'daily',
-                active INTEGER NOT NULL DEFAULT 1,
-                created_at TEXT NOT NULL
-            );
+    database = db()
+    database.habits.create_index([("id", ASCENDING)], unique=True)
+    database.checkins.create_index(
+        [("habit_id", ASCENDING), ("checkin_date", ASCENDING)], unique=True
+    )
+    database.checkins.create_index([("checkin_date", ASCENDING)])
+    database.system_settings.create_index([("key", ASCENDING)], unique=True)
+    database.outcome_rules.create_index([("id", ASCENDING)], unique=True)
 
-            CREATE TABLE IF NOT EXISTS checkins (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                habit_id INTEGER NOT NULL,
-                checkin_date TEXT NOT NULL,
-                completed INTEGER NOT NULL,
-                xp_delta INTEGER NOT NULL,
-                created_at TEXT NOT NULL,
-                UNIQUE(habit_id, checkin_date),
-                FOREIGN KEY(habit_id) REFERENCES habits(id) ON DELETE CASCADE
-            );
 
-            CREATE TABLE IF NOT EXISTS system_settings (
-                key TEXT PRIMARY KEY,
-                value TEXT NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS outcome_rules (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                outcome_type TEXT NOT NULL CHECK(outcome_type IN ('reward', 'penalty')),
-                title TEXT NOT NULL,
-                message TEXT NOT NULL,
-                active INTEGER NOT NULL DEFAULT 1,
-                created_at TEXT NOT NULL
-            );
-            """
-        )
+def next_sequence(name: str) -> int:
+    result = db().counters.find_one_and_update(
+        {"_id": name},
+        {"$inc": {"value": 1}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
+    return int(result["value"])
 
 
 def parse_iso_date(value: str | None) -> date:
@@ -82,17 +62,16 @@ def parse_iso_date(value: str | None) -> date:
     return date.fromisoformat(value)
 
 
-def streak_for_habit(conn: sqlite3.Connection, habit_id: int, through_date: date | None = None) -> tuple[int, int, int]:
-    rows = conn.execute(
-        """
-        SELECT checkin_date, completed
-        FROM checkins
-        WHERE habit_id = ?
-        ORDER BY checkin_date ASC
-        """,
-        (habit_id,),
-    ).fetchall()
-    completed_dates = {date.fromisoformat(row["checkin_date"]) for row in rows if row["completed"]}
+def streak_for_habit(habit_id: int, through_date: date | None = None) -> tuple[int, int, int]:
+    rows = db().checkins.find(
+        {"habit_id": habit_id},
+        {"_id": 0, "checkin_date": 1, "completed": 1},
+    ).sort("checkin_date", ASCENDING)
+    completed_dates = {
+        date.fromisoformat(row["checkin_date"])
+        for row in rows
+        if bool(row.get("completed"))
+    }
     completions = len(completed_dates)
 
     best = 0
